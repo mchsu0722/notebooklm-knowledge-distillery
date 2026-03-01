@@ -263,6 +263,74 @@ def generate_report(target_id, report_format="briefing", profile="openclaw"):
     return report_content
 
 
+def convert_to_docx(md_path, topic, date_str, notebook_url, report_content):
+    """
+    Convert markdown report to Word (.docx) format.
+    Returns the docx path or None if conversion fails.
+    """
+    try:
+        from docx import Document
+        from docx.shared import Pt, Inches, RGBColor
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+    except ImportError:
+        log("python-docx not installed, skipping Word export. Install with: pip install python-docx", "WARN")
+        return None
+
+    try:
+        doc = Document()
+
+        # Title
+        title = doc.add_heading(f'{topic} 知識報告', level=0)
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        # Metadata
+        meta = doc.add_paragraph()
+        meta.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        meta.add_run(f'生成時間：{date_str}').font.size = Pt(10)
+        meta.add_run('\n')
+        meta.add_run('工具：NotebookLM + Gemini AI').font.size = Pt(10)
+        meta.add_run('\n')
+        run = meta.add_run(f'NotebookLM 連結：{notebook_url}')
+        run.font.size = Pt(10)
+        run.font.color.rgb = RGBColor(0, 102, 204)
+
+        doc.add_paragraph('')  # spacer
+
+        # Parse markdown content into Word
+        for line in report_content.split('\n'):
+            stripped = line.strip()
+            if not stripped:
+                doc.add_paragraph('')
+            elif stripped.startswith('### '):
+                doc.add_heading(stripped[4:], level=3)
+            elif stripped.startswith('## '):
+                doc.add_heading(stripped[3:], level=2)
+            elif stripped.startswith('# '):
+                doc.add_heading(stripped[2:], level=1)
+            elif stripped.startswith('- ') or stripped.startswith('* '):
+                doc.add_paragraph(stripped[2:], style='List Bullet')
+            elif stripped.startswith('1. ') or stripped.startswith('2. ') or stripped.startswith('3. '):
+                doc.add_paragraph(stripped[3:], style='List Number')
+            elif stripped.startswith('> '):
+                p = doc.add_paragraph(stripped[2:])
+                p.style = 'Intense Quote' if 'Intense Quote' in [s.name for s in doc.styles] else 'Quote'
+            elif stripped.startswith('**') and stripped.endswith('**'):
+                p = doc.add_paragraph()
+                p.add_run(stripped.strip('*')).bold = True
+            else:
+                doc.add_paragraph(stripped)
+
+        # Save
+        docx_filename = md_path.stem + '.docx'
+        docx_path = md_path.parent / docx_filename
+        doc.save(str(docx_path))
+        return docx_path
+
+    except Exception as e:
+        log(f"Word conversion failed: {e}", "ERROR")
+        return None
+
+
 def save_report(topic, report_content, notebook_url, output_dir=None):
     """
     Save the report to the workspace with proper folder structure.
@@ -290,6 +358,11 @@ def save_report(topic, report_content, notebook_url, output_dir=None):
         f.write(report_content)
     
     log(f"Report saved: {report_path}")
+    
+    # Generate Word (.docx) version
+    docx_path = convert_to_docx(report_path, topic, date_str, notebook_url, report_content)
+    if docx_path:
+        log(f"Word report saved: {docx_path}")
     
     # Create README if it doesn't exist
     readme_path = output_dir / "README.md"
