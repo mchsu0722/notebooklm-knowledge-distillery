@@ -1,8 +1,10 @@
 # NotebookLM Knowledge Distillery 🎓
 
-Transform YouTube videos and articles into structured research reports using **NotebookLM + Gemini AI**.
+> 🇹🇼 **知識蒸餾器** — 把 YouTube 影片和網路文章丟進去，自動幫你整理成結構化的研究報告。用 NotebookLM + Gemini AI，4 支影片只要 3-5 分鐘就搞定，不用自己看完兩小時的內容。
+>
+> 🇺🇸 **Knowledge Distillery** — Feed YouTube videos and articles in, get structured research reports out. Powered by NotebookLM + Gemini AI. Turn 2+ hours of video into a concise report in just 3-5 minutes.
 
-Turn 4 YouTube videos (2+ hours of content) into a structured knowledge report in **~3-5 minutes**.
+---
 
 ---
 
