@@ -1,0 +1,20 @@
+[project]
+name = "notebooklm-knowledge-distillery"
+version = "0.1.0"
+description = "Transform YouTube videos and articles into structured research reports using NotebookLM + Gemini AI"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "mchsu0722" }]
+keywords = ["notebooklm", "knowledge-distillery", "youtube", "research", "ai-agent", "gemini", "openclaw"]
+
+dependencies = [
+    "python-docx>=1.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/mchsu0722/notebooklm-knowledge-distillery"
+Repository = "https://github.com/mchsu0722/notebooklm-knowledge-distillery"
+
+[project.scripts]
+kd = "scripts.kd:main"

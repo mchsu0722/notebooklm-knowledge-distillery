@@ -6,6 +6,36 @@
 
 ---
 
+## 🎬 How It Works
+
+```mermaid
+graph LR
+    A["📺 YouTube URLs\n📄 Article URLs"] -->|"kd.py research"| B["🤖 Open NotebookLM"]
+    B --> C["📥 Auto-import Sources"]
+    C --> D["🧠 Gemini AI Analysis\n~45 sec"]
+    D --> E["📊 Generate Report"]
+    E --> F["📝 .md + 📄 .docx\nStructured Report"]
+
+    style A fill:#1a1a2e,stroke:#e94560,color:#fff
+    style B fill:#1a1a2e,stroke:#0f3460,color:#fff
+    style C fill:#1a1a2e,stroke:#0f3460,color:#fff
+    style D fill:#1a1a2e,stroke:#e94560,color:#fff
+    style E fill:#1a1a2e,stroke:#0f3460,color:#fff
+    style F fill:#16213e,stroke:#53d769,color:#fff
+```
+
+### 📋 Example Output
+
+```
+科技研究_KD/
+├── 2026-02-27_核融合Helion_KD報告.md          # Markdown report
+├── 2026-02-27_核融合Helion_KD報告.docx        # Word document
+├── 2026-02-27_核融合Helion_KD報告_中文.md     # Chinese version
+└── 2026-02-27_核融合全球技術地圖_KD報告.md    # Multi-source synthesis
+```
+
+> ⚡ **Real result**: 4 YouTube videos about nuclear fusion → 1 structured research report in 3 minutes.
+
 ---
 
 ## 🚀 Quick Start
