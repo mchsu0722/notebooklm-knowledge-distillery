@@ -41,6 +41,36 @@ graph LR
 
 ---
 
+## 📦 Installation
+
+### Prerequisites
+- **Python 3.10+**
+- **[uv](https://docs.astral.sh/uv/)** (recommended) or pip
+- **[OpenClaw](https://github.com/openclaw/openclaw)** with browser automation enabled
+- **Google account** with [NotebookLM](https://notebooklm.google.com/) access
+- **macOS** (uses `pbpaste` for clipboard; Linux support coming soon)
+
+### Setup
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/mchsu0722/notebooklm-knowledge-distillery.git
+cd notebooklm-knowledge-distillery
+
+# 2. Install dependencies (using uv)
+uv sync
+
+# 3. Make sure OpenClaw browser is running
+openclaw browser start
+
+# 4. Log in to Google NotebookLM in the OpenClaw browser
+#    (only needed once — session persists)
+```
+
+That's it! You're ready to go. 🚀
+
+---
+
 ## 🚀 Quick Start
 
 ### Individual URLs
@@ -74,6 +104,8 @@ uv run scripts/kd.py research \
 uv run scripts/kd.py batch config.yaml
 ```
 
+---
+
 ## 📋 Command Reference
 
 ### Research Command
@@ -95,6 +127,8 @@ uv run scripts/kd.py research [OPTIONS]
 ```bash
 uv run scripts/kd.py batch CONFIG_FILE [--profile PROFILE]
 ```
+
+---
 
 ## 📊 Batch Configuration
 
@@ -120,6 +154,8 @@ Create a YAML file for multiple research tasks:
 
 See [examples/batch_config.yaml](./examples/batch_config.yaml) for full example.
 
+---
+
 ## 📂 Output Structure
 
 ```
@@ -134,6 +170,8 @@ See [examples/batch_config.yaml](./examples/batch_config.yaml) for full example.
 - **[Sample Report](./examples/sample_report.md)**: Example research report on nuclear fusion technology
 - **[Batch Configuration](./examples/batch_config.yaml)**: YAML file template for batch processing
 
+---
+
 ## ⚙️ How It Works
 
 1. Opens NotebookLM in browser (automated via OpenClaw)
@@ -142,12 +180,18 @@ See [examples/batch_config.yaml](./examples/batch_config.yaml) for full example.
 4. Generates report in selected format
 5. Copies and saves report to local folder
 
+---
+
 ## 🔧 Requirements
 
-- [OpenClaw](https://github.com/openclaw/openclaw) with browser automation
-- [uv](https://github.com/astral-sh/uv) (Python package runner)
-- macOS (uses `pbpaste` for clipboard)
-- Google account with NotebookLM access
+| Requirement | Why |
+|-------------|-----|
+| [OpenClaw](https://github.com/openclaw/openclaw) | Browser automation to control NotebookLM |
+| [uv](https://github.com/astral-sh/uv) | Python package runner |
+| macOS | Uses `pbpaste` for clipboard |
+| Google account | NotebookLM access |
+
+---
 
 ## 📝 Notes
 
@@ -159,6 +203,8 @@ See [examples/batch_config.yaml](./examples/batch_config.yaml) for full example.
 - 3-10 URLs per research session recommended for optimal results
 - Reports default to Traditional Chinese (customizable via NotebookLM settings)
 
+---
+
 ## 🐛 Troubleshooting
 
 | Issue | Solution |
@@ -166,6 +212,22 @@ See [examples/batch_config.yaml](./examples/batch_config.yaml) for full example.
 | Import failed | Verify URLs are public and have transcripts |
 | Report timeout | Wait longer; check NotebookLM UI manually |
 | Clipboard empty | Ensure `pbpaste` works; check if copy button was clicked |
+| Browser not found | Run `openclaw browser start` first |
+| NotebookLM login | Log in to Google in the OpenClaw browser profile |
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
 
 ## 📄 License
 
