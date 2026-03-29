@@ -7,6 +7,9 @@ or articles using NotebookLM + Gemini AI.
 
 Usage:
     uv run kd.py research --topic "金融投資" --urls "url1,url2,url3" --format briefing
+    uv run kd.py research --topic "AI技術" --playlist "https://youtube.com/playlist?list=xxx" --max-videos 10
+    uv run kd.py research --topic "科技趨勢" --channel "https://youtube.com/@channelname" --max-videos 5
+    uv run kd.py batch config.yaml
 """
 
 import argparse
@@ -15,14 +18,104 @@ import os
 import subprocess
 import sys
 import time
+import yaml
 from datetime import datetime
 from pathlib import Path
+from typing import List, Optional, Dict, Any
 
 
-def log(message, level="INFO"):
+def log(message: str, level: str = "INFO") -> None:
     """Print log message with timestamp"""
     timestamp = datetime.now().strftime("%H:%M:%S")
     print(f"[{timestamp}] {level}: {message}", file=sys.stderr)
+
+
+def expand_youtube_playlist(playlist_url: str, max_videos: int = 10) -> List[str]:
+    """
+    Expand YouTube playlist URL to individual video URLs using yt-dlp.
+    
+    Args:
+        playlist_url: YouTube playlist URL
+        max_videos: Maximum number of videos to extract (default: 10, max: 50)
+    
+    Returns:
+        List of individual video URLs
+    """
+    max_videos = min(max_videos, 50)  # NotebookLM limit
+    
+    log(f"Expanding playlist with max {max_videos} videos...")
+    
+    try:
+        cmd = [
+            "yt-dlp",
+            "--flat-playlist",
+            "--print", "url",
+            "--playlist-end", str(max_videos),
+            playlist_url
+        ]
+        
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        
+        if result.returncode != 0:
+            log(f"Failed to expand playlist: {result.stderr}", "ERROR")
+            return []
+        
+        urls = [url.strip() for url in result.stdout.split('\n') if url.strip()]
+        log(f"Extracted {len(urls)} video URLs from playlist")
+        return urls
+    
+    except Exception as e:
+        log(f"Error expanding playlist: {e}", "ERROR")
+        return []
+
+
+def get_channel_latest_videos(channel_url: str, max_videos: int = 10) -> List[str]:
+    """
+    Get latest videos from YouTube channel using yt-dlp.
+    
+    Args:
+        channel_url: YouTube channel URL
+        max_videos: Maximum number of videos to extract (default: 10, max: 50)
+    
+    Returns:
+        List of video URLs
+    """
+    max_videos = min(max_videos, 50)  # NotebookLM limit
+    
+    log(f"Getting latest {max_videos} videos from channel...")
+    
+    try:
+        cmd = [
+            "yt-dlp",
+            "--flat-playlist",
+            "--print", "url",
+            "--playlist-end", str(max_videos),
+            f"{channel_url}/videos"
+        ]
+        
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        
+        if result.returncode != 0:
+            log(f"Failed to get channel videos: {result.stderr}", "ERROR")
+            return []
+        
+        urls = [url.strip() for url in result.stdout.split('\n') if url.strip()]
+        log(f"Extracted {len(urls)} video URLs from channel")
+        return urls
+    
+    except Exception as e:
+        log(f"Error getting channel videos: {e}", "ERROR")
+        return []
 
 
 def run_openclaw_browser(action, retry=3, **kwargs):
@@ -331,6 +424,99 @@ def convert_to_docx(md_path, topic, date_str, notebook_url, report_content):
         return None
 
 
+def process_batch_config(config_path: str, profile: str = "openclaw") -> None:
+    """
+    Process batch configuration file with multiple research tasks.
+    
+    Args:
+        config_path: Path to YAML configuration file
+        profile: Browser profile to use
+    """
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+    except Exception as e:
+        log(f"Failed to load config file {config_path}: {e}", "ERROR")
+        return
+    
+    if not isinstance(config, list):
+        log("Config file must contain a list of tasks", "ERROR")
+        return
+    
+    total_tasks = len(config)
+    log(f"Processing {total_tasks} batch tasks...")
+    
+    for i, task in enumerate(config, 1):
+        log(f"--- Task {i}/{total_tasks}: {task.get('topic', 'Unnamed')} ---")
+        
+        topic = task.get('topic')
+        if not topic:
+            log("Task missing 'topic' field, skipping", "WARN")
+            continue
+        
+        # Determine URLs source
+        urls = []
+        
+        if 'urls' in task:
+            urls = task['urls']
+            if isinstance(urls, list):
+                urls = ','.join(urls)
+        elif 'playlist' in task:
+            playlist_urls = expand_youtube_playlist(
+                task['playlist'],
+                task.get('max_videos', 10)
+            )
+            urls = ','.join(playlist_urls)
+        elif 'channel' in task:
+            channel_urls = get_channel_latest_videos(
+                task['channel'],
+                task.get('max_videos', 10)
+            )
+            urls = ','.join(channel_urls)
+        else:
+            log("Task missing URL source (urls/playlist/channel), skipping", "WARN")
+            continue
+        
+        if not urls:
+            log("No URLs found for task, skipping", "WARN")
+            continue
+        
+        # Execute research
+        try:
+            log(f"Starting research for: {topic}")
+            
+            target_id, notebook_url = create_notebook_and_import_urls(urls, profile)
+            if not target_id:
+                log(f"Failed to create notebook for {topic}", "ERROR")
+                continue
+            
+            report_content = generate_report(
+                target_id,
+                report_format=task.get('format', 'briefing'),
+                profile=profile
+            )
+            
+            report_path = save_report(
+                topic,
+                report_content,
+                notebook_url,
+                output_dir=task.get('output_dir')
+            )
+            
+            log(f"✅ Task {i} completed: {report_path}")
+            
+            # Brief pause between tasks
+            if i < total_tasks:
+                log("Pausing 10 seconds before next task...")
+                time.sleep(10)
+        
+        except Exception as e:
+            log(f"❌ Task {i} failed: {e}", "ERROR")
+            continue
+    
+    log("🎉 Batch processing completed!")
+
+
 def save_report(topic, report_content, notebook_url, output_dir=None):
     """
     Save the report to the workspace with proper folder structure.
@@ -395,10 +581,27 @@ def main():
         required=True,
         help="Topic name (e.g., '金融投資')"
     )
-    research_parser.add_argument(
+    
+    # URL source options (mutually exclusive)
+    url_group = research_parser.add_mutually_exclusive_group(required=True)
+    url_group.add_argument(
         "--urls",
-        required=True,
         help="Comma-separated YouTube/article URLs"
+    )
+    url_group.add_argument(
+        "--playlist",
+        help="YouTube playlist URL"
+    )
+    url_group.add_argument(
+        "--channel",
+        help="YouTube channel URL"
+    )
+    
+    research_parser.add_argument(
+        "--max-videos",
+        type=int,
+        default=10,
+        help="Maximum videos from playlist/channel (default: 10, max: 50)"
     )
     research_parser.add_argument(
         "--format",
@@ -416,55 +619,104 @@ def main():
         help="Browser profile (default: openclaw)"
     )
     
+    # Batch command
+    batch_parser = subparsers.add_parser("batch", help="Process multiple research tasks from YAML file")
+    batch_parser.add_argument(
+        "config",
+        help="Path to YAML configuration file"
+    )
+    batch_parser.add_argument(
+        "--profile",
+        default="openclaw",
+        help="Browser profile (default: openclaw)"
+    )
+    
     args = parser.parse_args()
     
-    if args.command != "research":
+    if not args.command:
         parser.print_help()
         return 1
     
-    # Execute research workflow
-    log(f"🎓 Knowledge Distillery: {args.topic}")
-    log(f"URLs: {len(args.urls.split(','))} sources")
-    
-    try:
-        # Step 1: Create notebook and import URLs
-        target_id, notebook_url = create_notebook_and_import_urls(
-            args.urls,
-            profile=args.profile
-        )
-        
-        if not target_id:
-            log("Failed to create notebook", "ERROR")
+    # Handle batch command
+    if args.command == "batch":
+        try:
+            process_batch_config(args.config, args.profile)
+            return 0
+        except Exception as e:
+            log(f"Batch processing failed: {e}", "ERROR")
+            import traceback
+            traceback.print_exc()
             return 1
-        
-        # Step 2: Generate report
-        report_content = generate_report(
-            target_id,
-            report_format=args.format,
-            profile=args.profile
-        )
-        
-        # Step 3: Save report
-        report_path = save_report(
-            args.topic,
-            report_content,
-            notebook_url,
-            output_dir=args.output
-        )
-        
-        log(f"✅ Research complete!")
-        log(f"Report: {report_path}")
-        log(f"NotebookLM: {notebook_url}")
-        
-        print(f"\n📊 Report saved: {report_path}")
-        print(f"🔗 NotebookLM: {notebook_url}")
-        
-        return 0
     
-    except Exception as e:
-        log(f"Research failed: {e}", "ERROR")
-        import traceback
-        traceback.print_exc()
+    # Handle research command
+    elif args.command == "research":
+        # Determine URLs from different sources
+        urls = ""
+        
+        if args.urls:
+            urls = args.urls
+            log(f"🎓 Knowledge Distillery: {args.topic}")
+            log(f"URLs: {len(urls.split(','))} direct sources")
+        elif args.playlist:
+            playlist_urls = expand_youtube_playlist(args.playlist, args.max_videos)
+            if not playlist_urls:
+                log("Failed to extract URLs from playlist", "ERROR")
+                return 1
+            urls = ','.join(playlist_urls)
+            log(f"🎓 Knowledge Distillery: {args.topic}")
+            log(f"Playlist: {len(playlist_urls)} videos extracted")
+        elif args.channel:
+            channel_urls = get_channel_latest_videos(args.channel, args.max_videos)
+            if not channel_urls:
+                log("Failed to extract URLs from channel", "ERROR")
+                return 1
+            urls = ','.join(channel_urls)
+            log(f"🎓 Knowledge Distillery: {args.topic}")
+            log(f"Channel: {len(channel_urls)} latest videos extracted")
+        
+        try:
+            # Step 1: Create notebook and import URLs
+            target_id, notebook_url = create_notebook_and_import_urls(
+                urls,
+                profile=args.profile
+            )
+            
+            if not target_id:
+                log("Failed to create notebook", "ERROR")
+                return 1
+            
+            # Step 2: Generate report
+            report_content = generate_report(
+                target_id,
+                report_format=args.format,
+                profile=args.profile
+            )
+            
+            # Step 3: Save report
+            report_path = save_report(
+                args.topic,
+                report_content,
+                notebook_url,
+                output_dir=args.output
+            )
+            
+            log(f"✅ Research complete!")
+            log(f"Report: {report_path}")
+            log(f"NotebookLM: {notebook_url}")
+            
+            print(f"\n📊 Report saved: {report_path}")
+            print(f"🔗 NotebookLM: {notebook_url}")
+            
+            return 0
+        
+        except Exception as e:
+            log(f"Research failed: {e}", "ERROR")
+            import traceback
+            traceback.print_exc()
+            return 1
+    
+    else:
+        parser.print_help()
         return 1
 
 

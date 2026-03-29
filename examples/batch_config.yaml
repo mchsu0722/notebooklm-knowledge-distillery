@@ -1,0 +1,25 @@
+# Knowledge Distillery Batch Configuration Example
+
+- topic: "金融投資策略"
+  urls:
+    - https://youtube.com/watch?v=example1
+    - https://youtube.com/watch?v=example2
+    - https://youtube.com/watch?v=example3
+  format: briefing
+
+- topic: "AI技術趨勢"
+  playlist: https://youtube.com/playlist?list=PLexample
+  max_videos: 5
+  format: study-guide
+
+- topic: "綠色能源發展"
+  channel: https://youtube.com/@channelexample
+  max_videos: 8
+  format: briefing
+  output_dir: ./custom_output
+
+- topic: "區塊鏈應用案例"
+  urls:
+    - https://youtube.com/watch?v=blockchain1
+    - https://medium.com/article-example
+  format: blog
